@@ -1,46 +1,62 @@
-import React, { useState, memo, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 
-interface Page {
-  id: string;
-  pageNumber: number;
-  thumbnailUrl: string;
-  isProcessed: boolean;
-}
-
-interface SidebarProps {
-  pages: Page[];
-}
-
-export const ThumbnailSidebar = ({ pages }: SidebarProps) => {
+export const ThumbnailSidebar = ({ pages }: any) => {
   const [activePageId, setActivePageId] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const [viewTime, setViewTime] = useState(0);
+  const [processedCount, setProcessedCount] = useState(0);
 
-  const handlePageSelect = useCallback((id: string) => {
+  const config = { interval: 1000, logEnabled: true };
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setViewTime((t) => t + 1);
+    }, config.interval);
+    return () => clearInterval(timer);
+  }, [config]); 
+
+  useEffect(() => {
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowDown') console.log("User navigating...");
+    });
+  }, []); 
+
+  useEffect(() => {
+    const count = pages.filter((p: any) => p.isProcessed).length;
+    setProcessedCount(count);
+  }, [pages]);
+
+  const handlePageSelect = (id: string) => {
     setActivePageId(id);
-  }, []);
+  };
+
+  const checkStatus = (id: string) => {
+    return pages.find((p: any) => p.id === id)?.isProcessed;
+  };
 
   return (
-    <div className="sidebar-container">
-      <div className="list">
-        {pages.map((page) => (
-          <Thumbnail 
-            key={page.id}
-            page={page}
-            isSelected={activePageId === page.id}
-            onSelect={handlePageSelect}
-          />
-        ))}
-      </div>
+    <div className="sidebar">
+      <input onChange={(e) => setSearch(e.target.value)} placeholder="Search..." />
+      <div>Time: {viewTime}s | Processed: {processedCount}</div>
+      
+      {pages.map((page: any) => (
+        <Thumbnail 
+          key={page.id}
+          page={page}
+          isSelected={activePageId === page.id}
+          onSelect={handlePageSelect}
+          isDone={checkStatus(page.id)} 
+        />
+      ))}
     </div>
   );
 };
 
-const Thumbnail = memo(({ page, isSelected, onSelect }: any) => {
+const Thumbnail = React.memo(({ page, isSelected, onSelect, isDone }: any) => {
   return (
-    <div 
-      className={`thumb ${isSelected ? 'selected' : ''}`}
-      onClick={() => onSelect(page.id)}
-    >
-      <img src={page.thumbnailUrl} alt={`Page ${page.pageNumber}`} />
+    <div onClick={() => onSelect(page.id)} className={isSelected ? 'active' : ''}>
+      <img src={page.thumbnailUrl} />
+      {isDone && <span>✓</span>}
     </div>
   );
 });
